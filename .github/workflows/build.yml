@@ -36,31 +36,6 @@ jobs:
           cd JavaPro
           gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Print SHA-1
-        run: |
-          find / -name "debug.keystore" 2>/dev/null | head -5
-          keytool -list -v \
-            -keystore ~/.android/debug.keystore \
-            -alias androiddebugkey \
-            -storepass android -keypass android 2>/dev/null | grep SHA1 || \
-          keytool -list -v \
-            -keystore /root/.android/debug.keystore \
-            -alias androiddebugkey \
-            -storepass android -keypass android 2>/dev/null | grep SHA1 || \
-          echo "Keystore not found, generating..."
-          mkdir -p ~/.android
-          keytool -genkeypair -v \
-            -keystore ~/.android/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 \
-            -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
-          keytool -list -v \
-            -keystore ~/.android/debug.keystore \
-            -alias androiddebugkey \
-            -storepass android -keypass android | grep SHA1
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
