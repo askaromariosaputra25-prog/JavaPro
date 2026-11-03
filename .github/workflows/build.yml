@@ -1,60 +1,43 @@
 name: Build JavaPro APK
-
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
     branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Unzip JavaPro
-        run: unzip JavaPro_updated.zip
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Unzip project
+        run: |
+          ZIP=$(find . -name "*.zip" | head -1)
+          unzip -o "$ZIP"
+
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-      
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-      
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
+
+      - name: Setup Android SDK
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-      
-      - name: Grant execute permission to gradlew
-        run: chmod +x JavaPro/gradlew
-      
-      - name: Build Debug APK
-        working-directory: JavaPro
-        run: ./gradlew assembleDebug --stacktrace
-      
-      - name: Upload Debug APK
+          gradle-version: '8.2'
+
+      - name: Build APK
+        run: |
+          cd JavaPro
+          gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: JavaPro/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
-      
-      - name: Get APK size
-        run: |
-          APK_PATH="JavaPro/app/build/outputs/apk/debug/app-debug.apk"
-          if [ -f "$APK_PATH" ]; then
-            SIZE=$(du -sh "$APK_PATH" | cut -f1)
-            echo "APK built successfully! Size: $SIZE"
-          fi
+          name: JavaPro-APK
+          path: "**/app/build/outputs/apk/debug/*.apk"
